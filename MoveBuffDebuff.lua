@@ -11,12 +11,15 @@ MoveBuffDebuff.defaultCharacter =
 		["data"] = CENTER,
 	},
 	["useCharacterSettings"] = false,
+	["IconRow"] = 0,
+	["IconSpaceX"]= 8,
+	["IconSpaceY"]= 8,
 }
 MoveBuffDebuff.default = {
 	["accountWideProfile"] = MoveBuffDebuff.defaultCharacter,
 }
 
-function MoveBuffDebuff.GetSettings()--
+function MoveBuffDebuff.GetSettings()
 	if MoveBuffDebuff.charSavedVars.useCharacterSettings then
 		return MoveBuffDebuff.charSavedVars
 	else
@@ -24,23 +27,54 @@ function MoveBuffDebuff.GetSettings()--
 	end
 end
 
---local offsetX
 function MoveBuffDebuff.ApplyAnchor()
 	ZO_BuffDebuffTopLevelSelfContainer:ClearAnchors()	
 	ZO_BuffDebuffTopLevelSelfContainer:SetAnchor(MoveBuffDebuff.GetSettings().alignment.data, GuiRoot, 0, MoveBuffDebuff.GetSettings().offsetX, MoveBuffDebuff.GetSettings().offsetY)	
 end	
 
 local BuffDebuffBarInMenu = false
+local thebuffDebuffContainer=nil
+local ICON_SIZE = ZO_BUFF_DEBUFF_FRAME_DIMENSIONS_GAMEPAD 
 
-function MoveBuffDebuff.Initialize()
-	--Load up, those Saved Vars
-	local serverName = GetWorldName()
-	MoveBuffDebuff.savedvars = ZO_SavedVars:NewAccountWide("MoveBuffDebuffSavedVariables", MoveBuffDebuff.version, serverName, MoveBuffDebuff.default)
-	MoveBuffDebuff.charSavedVars = ZO_SavedVars:NewCharacterIdSettings("MoveBuffDebuffSavedVariables",MoveBuffDebuff.version, serverName, MoveBuffDebuff.savedvars.accountWideProfile) 	
-	MoveBuffDebuff.ApplyAnchor() --move to saved position
-	ZO_BuffDebuffTopLevelSelfContainer:SetHandler("OnShow",function() MoveBuffDebuff.ApplyAnchor() end)
-    local LHAS = LibHarvensAddonSettings
-    
+local function ApplyGrid()
+	local ICONS_PER_ROW = MoveBuffDebuff.GetSettings().IconRow
+	if ICONS_PER_ROW == 0 or nil then return end
+
+	local total = 0
+	local pools={thebuffDebuffContainer.buffPool,thebuffDebuffContainer.debuffPool}
+	
+	for _,pool in ipairs(pools) do
+		local activeControls = pool:GetActiveObjects()
+		local orderedBuffs = {}
+		
+		for _, buffControl in pairs(activeControls) do
+			table.insert(orderedBuffs, buffControl)
+		end
+		table.sort(orderedBuffs, function(a, b)
+			return a:GetLeft() < b:GetLeft()
+		end)
+		local index=0
+		-- 4. Apply your custom 5-across grid math
+		for i, buffControl in ipairs(orderedBuffs) do
+			index = total+( i - 1 )
+			
+			local row = math.floor(index / ICONS_PER_ROW)
+			local col = index % ICONS_PER_ROW
+
+			local offsetX = col * (ICON_SIZE + MoveBuffDebuff.GetSettings().IconSpaceX)
+			local offsetY = row * (ICON_SIZE + MoveBuffDebuff.GetSettings().IconSpaceY)
+
+			-- Wipe the vanilla anchor and set the grid anchor
+			buffControl:ClearAnchors()
+			buffControl:SetAnchor(TOPLEFT, thebuffDebuffContainer.control, TOPLEFT, offsetX, offsetY)
+		end
+		total=index+1
+	end
+end
+
+function MoveBuffDebuff.BuildSettings()
+	local LHAS = LibHarvensAddonSettings
+		
     local options = {
         allowDefaults = true,
 		allowRefresh = false,
@@ -163,6 +197,78 @@ function MoveBuffDebuff.Initialize()
         step = 5
     }
     settings:AddSetting(slider)
+	
+	local section = {
+        type = LHAS.ST_SECTION,
+        label = "EXPERIMENTAL",
+    }
+    settings:AddSetting(section)
+    local slider = {
+        type = LHAS.ST_SLIDER,
+        label = "Buff's Per Row",
+		tooltip = "Default: 0",
+        setFunction = function(value)
+            MoveBuffDebuff.GetSettings().IconRow = value
+			ApplyGrid()
+			
+        end,
+        getFunction = function()
+            return MoveBuffDebuff.GetSettings().IconRow
+        end,
+        default = 0,
+        min = 0,
+        max = 20,
+        step = 1,
+    }
+    settings:AddSetting(slider)
+	
+	local slider = {
+        type = LHAS.ST_SLIDER,
+        label = "Spacing X",
+		tooltip = "Default is 8",
+        setFunction = function(value)
+            MoveBuffDebuff.GetSettings().IconSpaceX = value
+			ApplyGrid()
+        end,
+        getFunction = function()
+            return MoveBuffDebuff.GetSettings().IconSpaceX
+        end,
+        default = 8,
+        min = 0,
+        max = 50,
+        step = 1,
+    }
+    settings:AddSetting(slider)
+	
+	local slider = {
+        type = LHAS.ST_SLIDER,
+        label = "Spacing Y",
+		tooltip = "Default is 8",
+        setFunction = function(value)
+            MoveBuffDebuff.GetSettings().IconSpaceY = value
+			ApplyGrid()
+        end,
+        getFunction = function()
+            return MoveBuffDebuff.GetSettings().IconSpaceY
+        end,
+        default = 8,
+        min = 0,
+        max = 50,
+        step = 1,
+    }
+    settings:AddSetting(slider)
+end
+
+
+
+function MoveBuffDebuff.Initialize()
+	--Load up, those Saved Vars
+	local serverName = GetWorldName()
+	MoveBuffDebuff.savedvars = ZO_SavedVars:NewAccountWide("MoveBuffDebuffSavedVariables", MoveBuffDebuff.version, serverName, MoveBuffDebuff.default)
+	MoveBuffDebuff.charSavedVars = ZO_SavedVars:NewCharacterIdSettings("MoveBuffDebuffSavedVariables",MoveBuffDebuff.version, serverName, MoveBuffDebuff.savedvars.accountWideProfile) 	
+	MoveBuffDebuff.ApplyAnchor() --move to saved position	
+	SecurePostHook(ZO_BuffDebuff_ContainerObject, "Update",function(self) thebuffDebuffContainer = self ApplyGrid() end)
+	MoveBuffDebuff.BuildSettings()
 end
 function MoveBuffDebuff.OnAddOnLoaded(event, addonName)
 	if addonName == MoveBuffDebuff.name then
