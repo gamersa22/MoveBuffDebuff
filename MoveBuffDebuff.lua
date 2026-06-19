@@ -41,7 +41,7 @@ local function ApplyGrid()
 	if ICONS_PER_ROW == 0 or nil then return end
 
 	local total = 0
-	local pools={thebuffDebuffContainer.buffPool,thebuffDebuffContainer.debuffPool}
+	local pools={thebuffDebuffContainer.buffPool, thebuffDebuffContainer.debuffPool}
 	
 	for _,pool in ipairs(pools) do
 		local activeControls = pool:GetActiveObjects()
@@ -267,7 +267,7 @@ function MoveBuffDebuff.Initialize()
 	MoveBuffDebuff.savedvars = ZO_SavedVars:NewAccountWide("MoveBuffDebuffSavedVariables", MoveBuffDebuff.version, serverName, MoveBuffDebuff.default)
 	MoveBuffDebuff.charSavedVars = ZO_SavedVars:NewCharacterIdSettings("MoveBuffDebuffSavedVariables",MoveBuffDebuff.version, serverName, MoveBuffDebuff.savedvars.accountWideProfile) 	
 	MoveBuffDebuff.ApplyAnchor() --move to saved position	
-	SecurePostHook(ZO_BuffDebuff_ContainerObject, "Update",function(self) thebuffDebuffContainer = self ApplyGrid() end)
+	SecurePostHook(BUFF_DEBUFF.containerObjectsByUnitTag["player"], "Update",function(self) thebuffDebuffContainer = self ApplyGrid() end)
 	MoveBuffDebuff.BuildSettings()
 end
 function MoveBuffDebuff.OnAddOnLoaded(event, addonName)
