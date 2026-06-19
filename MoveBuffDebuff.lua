@@ -6,14 +6,16 @@ MoveBuffDebuff.defaultCharacter =
 {	
 	["offsetY"] = 325,
 	["offsetX"] = 0,
-	["alignment"]={
+	["alignment"] = {
 		["name"] = "Center",
 		["data"] = CENTER,
 	},
 	["useCharacterSettings"] = false,
+	["IconDirHorz"] = {["name"]="Right", ["data"]=1},
+	["IconDirVert"] = {["name"]="Down", ["data"]=1},
 	["IconRow"] = 0,
-	["IconSpaceX"]= 8,
-	["IconSpaceY"]= 8,
+	["IconSpaceX"] = 8,
+	["IconSpaceY"] = 8,
 }
 MoveBuffDebuff.default = {
 	["accountWideProfile"] = MoveBuffDebuff.defaultCharacter,
@@ -35,6 +37,7 @@ end
 local BuffDebuffBarInMenu = false
 local thebuffDebuffContainer=nil
 local ICON_SIZE = ZO_BUFF_DEBUFF_FRAME_DIMENSIONS_GAMEPAD 
+
 
 local function ApplyGrid()
 	local ICONS_PER_ROW = MoveBuffDebuff.GetSettings().IconRow
@@ -66,7 +69,7 @@ local function ApplyGrid()
 
 			-- Wipe the vanilla anchor and set the grid anchor
 			buffControl:ClearAnchors()
-			buffControl:SetAnchor(TOPLEFT, thebuffDebuffContainer.control, TOPLEFT, offsetX, offsetY)
+			buffControl:SetAnchor(TOPLEFT, thebuffDebuffContainer.control, TOPLEFT, MoveBuffDebuff.GetSettings().IconDirHorz.data * offsetX, MoveBuffDebuff.GetSettings().IconDirVert.data * offsetY)
 		end
 		total=index+1
 	end
@@ -136,7 +139,6 @@ function MoveBuffDebuff.BuildSettings()
         end,
     }
 	settings:AddSetting(button)
-	 local selectedText = "Center"
 	 local Alainment={
 			type = LHAS.ST_DROPDOWN,
 			label = "Align Bar",
@@ -203,14 +205,47 @@ function MoveBuffDebuff.BuildSettings()
         label = "EXPERIMENTAL",
     }
     settings:AddSetting(section)
+	local Alainment={
+		type = LHAS.ST_DROPDOWN,
+		label = "Horizontal Direction",
+		items = {
+			{["name"]="Left", ["data"]=-1}, 
+			{["name"]="Right", ["data"]=1},
+		},
+		default = "Right",
+		getFunction = function()
+			return MoveBuffDebuff.GetSettings().IconDirHorz.name
+		end,
+		setFunction = function(combobox, name, item)
+			MoveBuffDebuff.GetSettings().IconDirHorz = item
+			ApplyGrid()
+		end
+	}
+	settings:AddSetting(Alainment)
+	 local Alainment={
+			type = LHAS.ST_DROPDOWN,
+			label = "Vertical Direction",
+			items = {
+				{["name"]="Up", ["data"]=-1}, 
+				{["name"]="Down", ["data"]=1},
+			},
+			default = "Down",
+			getFunction = function()
+				return MoveBuffDebuff.GetSettings().IconDirVert.name
+			end,
+			setFunction = function(combobox, name, item)
+				MoveBuffDebuff.GetSettings().IconDirVert = item
+				ApplyGrid()
+			end
+		}
+	settings:AddSetting(Alainment)
     local slider = {
         type = LHAS.ST_SLIDER,
         label = "Buff's Per Row",
 		tooltip = "Default: 0",
         setFunction = function(value)
             MoveBuffDebuff.GetSettings().IconRow = value
-			ApplyGrid()
-			
+			ApplyGrid()		
         end,
         getFunction = function()
             return MoveBuffDebuff.GetSettings().IconRow
