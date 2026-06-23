@@ -151,6 +151,9 @@ function MoveBuffDebuff.BuildSettings()
 			},{
                 name = "Left",
                 data = LEFT
+			},{
+                name = "Bottom",
+                data = BOTTOM
             },},
 			default = "Center",
 			getFunction = function()
